@@ -1,0 +1,30 @@
+export const M_PRODUCT_QUALIFICATIONS = [
+  { name: "New Arrived", url: "new-arrived" },
+  { name: "Best Seller", url: "best-seller" },
+  { name: "Premium", url: "premium" },
+  { name: "Limited Edition", url: "limited-edition" },
+  { name: "Trending", url: "trending" },
+  { name: "Exclusive", url: "exclusive" },
+  { name: "Hot Deal", url: "hot-deal" },
+  { name: "Customer Favorite", url: "customer-favorite" },
+  { name: "Editor's Pick", url: "editors-pick" },
+  { name: "Top Rated", url: "top-rated" },
+  { name: "Luxury", url: "luxury" },
+  { name: "Eco-Friendly", url: "eco-friendly" },
+  { name: "Handmade", url: "handmade" },
+  { name: "Budget-Friendly", url: "budget-friendly" },
+  { name: "Seasonal", url: "seasonal" },
+  { name: "Limited Stock", url: "limited-stock" },
+  { name: "Imported", url: "imported" },
+  { name: "Organic", url: "organic" },
+  { name: "High Demand", url: "high-demand" },
+  { name: "Fast Selling", url: "fast-selling" },
+] as const;
+
+export const M_GENERIC_PRODUCT_CATEGORIES = [
+  { name: "Clothing", url: "clothing" },
+  { name: "Outerwear", url: "outerwear" },
+  { name: "Fashion", url: "fashion" },
+  { name: "Activewear", url: "activewear" },
+  { name: "Undergarment", url: "undergarment" },
+] as const;
