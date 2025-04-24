@@ -45,6 +45,7 @@ import StatusBox from "./StatusBox";
 import { ProductListingTableType } from "../types";
 import { useFiltereProductStore } from "../store/use-filtering";
 import { useAllProductsForTable } from "../hooks/products";
+import DeleteProductModal from "./DeleteProductModal";
 
 const columns: ColumnDef<ProductListingTableType>[] = [
   {
@@ -100,7 +101,9 @@ const columns: ColumnDef<ProductListingTableType>[] = [
     header: "Actions",
     cell: (info) => (
       <div className="flex items-center gap-4">
-        <MdDeleteOutline className="text-2xl text-red-600" />
+        <DeleteProductModal productId={info.row.original.id}>
+          <MdDeleteOutline className="cursor-pointer text-2xl text-red-600" />
+        </DeleteProductModal>
         <Link href={`/dashboard/products/edit/${info.row.original.slug}`}>
           <Edit className="size-5 text-blue-600" />
         </Link>

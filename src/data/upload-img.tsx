@@ -15,3 +15,6 @@ export const uploadImgToCloude = async (
     secure_url: default_img_url,
   };
 };
+
+//
+export const deleteImgToCloude = async (publicId: string) => {};

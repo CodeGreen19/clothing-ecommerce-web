@@ -17,6 +17,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { createdAt, id, updatedAt } from "../schemaHelper";
+import { cartItems } from "./cart";
 
 export const GenderEnum = pgEnum("gender", GENDERS);
 export const ProductQulificationEnum = pgEnum(
@@ -60,6 +61,7 @@ export const products = pgTable(
 export const productRelations = relations(products, ({ many }) => ({
   sizeColorStockAndImage: many(sizes),
   desBulletin: many(desBulletin),
+  cartItems: many(cartItems),
 }));
 
 // ..............................sizes.....................................

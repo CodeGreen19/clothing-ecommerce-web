@@ -59,11 +59,11 @@ const SubSelectionPopover = () => {
           )}
         </div>
         <div className="grid grid-cols-10 gap-1">
-          {ALL_POSSIBLE_COLORS.map((colorInfo) => (
+          {ALL_POSSIBLE_COLORS.map((colorInfo, i) => (
             <ProductToolTip
               isOpen={isColorPopoverOpen}
               text={colorInfo.name}
-              key={colorInfo.name}
+              key={i}
             >
               <div
                 onClick={() => {

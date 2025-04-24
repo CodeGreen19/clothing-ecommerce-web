@@ -44,6 +44,11 @@ export const allColorsGenious = (
   existedSizes: string[],
   allSizes: allPossibleColors[],
 ): allPossibleColors[] => {
-  const info = allSizes.filter((item) => !existedSizes.includes(item.name));
+  const info = allSizes.filter(
+    (item) =>
+      !existedSizes
+        .map((color) => color.trim().toLowerCase())
+        .includes(item.name.trim().toLowerCase()),
+  );
   return info;
 };

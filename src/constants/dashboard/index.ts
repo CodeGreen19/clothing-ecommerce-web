@@ -275,3 +275,13 @@ export const CLOTH_BRANDS = [
   "Richman",
   "Deshal",
 ] as const;
+
+export const ORDER_STATUS = [
+  "pending",
+  "confirmed",
+  "shipped",
+  "delivered",
+  "cancelled",
+  "returned",
+  "failed",
+] as const;

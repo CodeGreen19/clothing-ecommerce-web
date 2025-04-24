@@ -77,20 +77,6 @@ const AssertsTable = ({
       }
     });
   }, [asserts, setSelectedSize]);
-  // update initial colors
-  // useEffect(() => {
-  //   if (selectedSize) {
-  //     if (asserts.length) {
-  //       let colors = asserts
-  //         .filter((item) => item.size === selectedSize)[0]
-  //         .colorAndStocks.map((info) => info.color);
-  //       setExistedColorsOnSize(colors);
-  //       // select size,
-  //       let id = asserts.filter((item) => item.size === selectedSize)[0].id;
-  //       setSelectedSizeId(id);
-  //     }
-  //   }
-  // }, [selectedSize]);
 
   return (
     <div className="flex w-full flex-col items-start gap-2 md:flex-row">
@@ -120,6 +106,7 @@ const AssertsTable = ({
         <div>
           <div className="w-full">
             <ExistedAssertsAndStocks
+              qc={qc}
               selectedSize={selectedSize}
               info={asserts}
             />

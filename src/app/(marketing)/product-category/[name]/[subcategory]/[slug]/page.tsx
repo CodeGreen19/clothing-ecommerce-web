@@ -1,4 +1,4 @@
-import ProductDetails from "@/features/marketing/product-details";
+import ProductDetails from "@/features/marketing/product-details/components";
 import React from "react";
 
 const page = () => {

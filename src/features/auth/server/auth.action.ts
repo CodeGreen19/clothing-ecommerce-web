@@ -22,6 +22,9 @@ export const loginWithPhoneNo = async (authData: authPhoneSchemaType) => {
     return { error: "Invalid Credentials" };
   }
   const otp = generateUniqueOTP();
+
+  console.log(otp);
+
   const expires = new Date(Date.now() + 1000 * 60 * 2);
 
   const [user] = await db

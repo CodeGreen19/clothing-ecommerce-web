@@ -1,21 +1,19 @@
 import { auth } from "@/auth";
 import Logout from "./Logout";
-import UpdateRole from "./UpdateRole";
 
 const AccountProfile = async () => {
   const session = await auth();
 
   return (
-    <div className="container m-auto min-h-screen py-5">
+    <div className="container m-auto min-h-screen p-5 py-5">
       {session?.user ? (
         <div>
-          <ul>
-            <li>{session.user.name}</li>
-            <li>{session.user.email}</li>
-            <li>{session.user.phoneNo}</li>
-            <li>{session.user.role}</li>
+          <ul className="space-y-2">
+            <li>mame: {session.user.name}</li>
+            <li>email: {session.user.email}</li>
+            <li>phoneNo: {session.user.phoneNo}</li>
+            <li>Role: {session.user.role}</li>
             <Logout />
-            <UpdateRole />
           </ul>
         </div>
       ) : (

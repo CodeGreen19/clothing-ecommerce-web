@@ -10,10 +10,13 @@ import {
 import { ArrowBigRight } from "lucide-react";
 import { useState } from "react";
 
+import { handleSuccess } from "@/lib/helper";
+import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import SpinnerLoading from "../../../../shared/SpinnerLoading";
-import { useGetProductAsserts } from "../../../hooks/products";
 import { productSchema } from "../../../schema/products";
+import { getSingleProductOnlyAsserts } from "../../../server/product.query.action";
+import { useEditColorStockImageStore } from "../../../store/use-product-edit";
 import { AddProductFormProps } from "../../../types";
 import AssertsTable from "./AssertsTable";
 import UpdateAssertsHeader from "./UpdateAssertHeader";
@@ -22,18 +25,49 @@ const AssertsAndStocks = ({
   form,
   productId,
 }: AddProductFormProps & { productId: string }) => {
-  // for existing data
-  const { isPending, data: existData } = useGetProductAsserts({ productId });
-
   const [openModal, setOpenModal] = useState<boolean>(false);
+  const {
+    selectedSize,
+    selectedSizeId,
+    existedColorsOnSize,
+    setDbSizeColorStockImgArr,
+    setSelectedSize,
+  } = useEditColorStockImageStore();
+  const { isPending, data: existData } = useQuery({
+    queryKey: ["asserts"],
+    queryFn: async () => {
+      const data = await getSingleProductOnlyAsserts({ productId });
+      if ("error" in data) {
+        handleSuccess(data);
+
+        return { asserts: [] };
+      } else {
+        setDbSizeColorStockImgArr(data.asserts);
+        setSelectedSize(data.asserts[0].size);
+        return { asserts: data.asserts };
+      }
+    },
+    enabled: openModal,
+  });
   //
   const closeModal = () => {
     setOpenModal(false);
   };
 
+  console.log("logged", selectedSize, selectedSizeId, existedColorsOnSize);
+
   return (
     <div>
-      <AlertDialog open={openModal}>
+      <AlertDialog
+        onOpenChange={(e) => {
+          if (e) {
+            setOpenModal(true);
+          } else {
+            setOpenModal(false);
+          }
+        }}
+        open={openModal}
+      >
         <AlertDialogOverlay className="bg-black/5" />
         <AlertDialogTrigger
           className="m-0 p-0"

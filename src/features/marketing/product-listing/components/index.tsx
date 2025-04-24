@@ -1,8 +1,10 @@
 import React from "react";
 import ProductFilteringSheet from "./ProductFilteringSheet";
 import ProductCard from "../../product/components/ProductCard";
+import { getListingProducts } from "../server/listing.action";
 
-const ProductListing = () => {
+const ProductListing = async () => {
+  const products = await getListingProducts();
   return (
     <div className="min-h-screen">
       <div className="min-h-32 bg-pink-100">Banner here</div>
@@ -19,17 +21,8 @@ const ProductListing = () => {
         <div className="w-full">
           <div className="h-20 bg-blue-200">Top section</div>
           <div className="grid grid-cols-2 gap-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: 30 }).map((item, i) => (
-              <ProductCard
-                key={i}
-                product={{
-                  id: Math.random(),
-                  description: "description",
-                  image: "/product.png",
-                  name: "wahat fasd",
-                  price: "1220",
-                }}
-              />
+            {products.map((item, i) => (
+              <ProductCard key={i} product={item} />
             ))}
           </div>
         </div>

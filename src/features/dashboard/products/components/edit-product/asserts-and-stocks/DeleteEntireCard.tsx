@@ -5,9 +5,25 @@ import {
 } from "@/components/ui/popover";
 
 import { DashboardButton } from "@/features/dashboard/shared/DashboardButton";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { MdDeleteForever } from "react-icons/md";
+import { deleteColorOfSpecifiedSize } from "../../../server/product.action";
+import { handleSuccess } from "@/lib/helper";
 
-const DeleteEntireCard = () => {
+const DeleteEntireCard = ({
+  colorAndStockId,
+  productId,
+}: {
+  colorAndStockId: string;
+  productId: string;
+}) => {
+  const qc = useQueryClient();
+  const { mutate, isPending } = useMutation({
+    mutationFn: deleteColorOfSpecifiedSize,
+    onSuccess: async (info) => {
+      await handleSuccess(info, qc, ["asserts"]);
+    },
+  });
   return (
     <div>
       <Popover>
@@ -23,8 +39,13 @@ const DeleteEntireCard = () => {
             This action will delete all your uploaded image also !
           </h1>
           <h2 className="text-sm">Remove Color and Stock</h2>
-          <DashboardButton className="w-24" variant={"signature"}>
-            Remove
+          <DashboardButton
+            pending={isPending}
+            onClick={() => mutate({ colorAndStockId, productId })}
+            className="w-24"
+            variant={"signature"}
+          >
+            Delete
           </DashboardButton>
         </PopoverContent>
       </Popover>

@@ -10,7 +10,7 @@ import DashboardInput from "@/features/dashboard/shared/DashboardInput";
 import ProductSecHeading from "@/features/dashboard/products/components/shared/headings";
 import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { allColorsGenious } from "@/features/dashboard/products/helpers/helper";
 import { ALL_POSSIBLE_COLORS } from "../../../constants";
@@ -34,6 +34,11 @@ const EditSubSelectionPopover = () => {
       }, 5000);
     }
   }, [stockAndColorMessage]);
+  // filtered info
+  const filteredColors = useMemo(() => {
+    return allColorsGenious(existedColorsOnSize, [...ALL_POSSIBLE_COLORS]);
+  }, [existedColorsOnSize]);
+
   return (
     <Popover>
       <PopoverTrigger
@@ -53,23 +58,22 @@ const EditSubSelectionPopover = () => {
             <span className="-translate-y-1 text-sm"> ({selectedColor})</span>
           )}
         </div>
-        <div className="grid grid-cols-10 gap-1">
-          {allColorsGenious(existedColorsOnSize, [...ALL_POSSIBLE_COLORS]).map(
-            (colorInfo) => (
-              <div
-                onClick={() => {
-                  setSelectedColor(colorInfo.name);
-                  setSelectedTailwind(colorInfo.tailwind);
-                }}
-                className={cn(
-                  "group relative size-6 flex-none rounded-full p-2",
-                  colorInfo.tailwind,
-                  selectedColor === colorInfo.name && "ring-2 ring-blue-500",
-                )}
-                key={colorInfo.name}
-              ></div>
-            ),
-          )}
+        <div className="grid grid-cols-10 gap-1 space-y-1">
+          {filteredColors.map((colorInfo, i) => (
+            <div
+              onClick={() => {
+                setSelectedColor(colorInfo.name);
+                setSelectedTailwind(colorInfo.tailwind);
+              }}
+              className={cn(
+                "group relative size-6 flex-none rounded-full p-2 ring-1 ring-black/60",
+                colorInfo.tailwind,
+                selectedColor === colorInfo.name &&
+                  "ring-2 ring-blue-500 ring-offset-2",
+              )}
+              key={i}
+            ></div>
+          ))}
         </div>
         <ProductSecHeading
           main="Stock"

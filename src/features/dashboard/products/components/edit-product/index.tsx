@@ -35,7 +35,11 @@ const EditProduct = () => {
     defaultValues: productDefaultValue,
   });
 
-  const { isPending: fetching_loading, data } = useProductWithoutAsserts({
+  const {
+    isPending: fetching_loading,
+    data,
+    isRefetching,
+  } = useProductWithoutAsserts({
     slug: productName,
     form: form,
   });
@@ -50,7 +54,6 @@ const EditProduct = () => {
       await handleSuccess(info, qc, ["asserts"]);
     },
   });
-
   // submit
   const handleSubmit = (value: ProductSchemaType) => {
     mutate({ previousSlug: productName, productInfo: value });
@@ -69,7 +72,7 @@ const EditProduct = () => {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
           <UpdateProductHeader reset={form.reset} pending={isPending} />
-          {fetching_loading ? (
+          {fetching_loading || isRefetching ? (
             <SpinnerLoading />
           ) : (
             <div>

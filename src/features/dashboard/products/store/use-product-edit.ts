@@ -1,6 +1,9 @@
 import { AllPossibleSizesType } from "@/constants/dashboard/types";
 import { create } from "zustand";
-import { SizeColorStockAndImagesType } from "../types";
+import {
+  DBSizeColorStockAndImagesType,
+  SizeColorStockAndImagesType,
+} from "../types";
 
 type StoreState = {
   selectedSize: AllPossibleSizesType;
@@ -15,10 +18,12 @@ type StoreState = {
     color: string,
     files: File[],
   ) => void;
+  dbSizeColorStockImgArr: DBSizeColorStockAndImagesType[];
+  setDbSizeColorStockImgArr: (info: DBSizeColorStockAndImagesType[]) => void;
   removeColorList: (size: AllPossibleSizesType, color: string) => void;
   removeSizeList: (size: AllPossibleSizesType) => void;
   setColorAndStock: (stock: string, color: string, tailwind: string) => void;
-  reset: () => void;
+  reset: (size: AllPossibleSizesType) => void;
 };
 
 export const useEditColorStockImageStore = create<StoreState>((set) => ({
@@ -26,9 +31,29 @@ export const useEditColorStockImageStore = create<StoreState>((set) => ({
   selectedSize: "XS",
   selectedSizeId: "",
 
+  dbSizeColorStockImgArr: [],
+
+  setDbSizeColorStockImgArr: (info) => set({ dbSizeColorStockImgArr: info }),
+
   existedColorsOnSize: [],
   setExistedColorsOnSize: (info) => set({ existedColorsOnSize: info }),
-  setSelectedSize: (s) => set({ selectedSize: s }),
+  setSelectedSize: (s) =>
+    set((state) => {
+      const colors = [];
+      const info = [...state.dbSizeColorStockImgArr];
+      for (const data of info) {
+        if (data.size === s) {
+          for (const colorInfo of data.colorAndStocks) {
+            colors.push(colorInfo.color);
+          }
+        }
+      }
+
+      return {
+        selectedSize: s,
+        existedColorsOnSize: colors,
+      };
+    }),
   setSelectedSizeId: (s) => set({ selectedSizeId: s }),
 
   setColorAndStock: (stock, color, tailwind) =>
@@ -99,5 +124,11 @@ export const useEditColorStockImageStore = create<StoreState>((set) => ({
       info[existingIndex].otherInfo = [];
       return { sizeColorStockImgArr: info };
     }),
-  reset: () => set({ sizeColorStockImgArr: [], selectedSize: "XS" }),
+  reset: (size) =>
+    set({
+      sizeColorStockImgArr: [],
+      dbSizeColorStockImgArr: [],
+      existedColorsOnSize: [],
+      selectedSize: size,
+    }),
 }));

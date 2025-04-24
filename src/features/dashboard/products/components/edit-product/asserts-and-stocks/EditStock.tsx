@@ -2,8 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DashboardButton } from "@/features/dashboard/shared/DashboardButton";
 import { handleSuccess } from "@/lib/helper";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, useMutation } from "@tanstack/react-query";
 import { DeleteIcon, Edit } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { MdUpdate } from "react-icons/md";
 import { updateExistedStock } from "../../../server/product.action";
@@ -11,12 +12,15 @@ import { updateExistedStock } from "../../../server/product.action";
 const EditStock = ({
   colorId,
   initialStock,
+  qc,
 }: {
   initialStock: number;
   colorId: string;
+  qc: QueryClient;
 }) => {
-  const qc = useQueryClient();
-  const { productId } = { productId: "dfasd" };
+  const pathName = usePathname();
+  const mainPath = pathName.split("/")[pathName.split("/").length - 1];
+  const [productSlug] = mainPath.split("?");
   const [shouldEdit, setShouldEdit] = useState<boolean>(false);
   const [newStock, setNewStock] = useState<string>("");
 
@@ -64,7 +68,7 @@ const EditStock = ({
                     colorId,
                     previousStock: initialStock,
                     newStock: stock,
-                    productId,
+                    productSlug,
                   });
                 }}
                 variant={"signature"}

@@ -5,6 +5,7 @@ import { DatabaseError, NeonDbError } from "@neondatabase/serverless";
 // Function to handle various errors
 export function handleServerError(error: unknown) {
   // Handle Zod validation errors
+
   if (error instanceof ZodError) {
     return {
       status: 400,
@@ -15,8 +16,6 @@ export function handleServerError(error: unknown) {
   }
 
   if (error instanceof DatabaseError) {
-    console.log(error);
-
     return {
       status: 500,
       error: error.detail,

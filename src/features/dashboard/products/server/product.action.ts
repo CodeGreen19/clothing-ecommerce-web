@@ -1,7 +1,8 @@
 "use server";
 
-import { uploadImgToCloude } from "@/data/upload-img";
-import { neon_db as db } from "@/drizzle/db";
+import { UploadImgType } from "@/constants/dashboard/types";
+import { deleteImgToCloude, uploadImgToCloude } from "@/data/upload-img";
+import { db } from "@/drizzle/db";
 import {
   colorAndStocks,
   desBulletin,
@@ -9,329 +10,119 @@ import {
   products,
   sizes,
 } from "@/drizzle/schema";
-import { SortingState } from "@tanstack/react-table";
-import { and, asc, count, desc, eq, ilike, SQL } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { handleServerError } from "../../error";
 import {
   convertToKebabCase,
   totalStockHelper,
 } from "../../products/helpers/helper";
-import {
-  CategoryFilterInfoType,
-  DBSizeColorStockAndImagesType,
-  ProductSchemaType,
-  SizeColorStockAndImagesType,
-} from "../types";
 import { productSchema } from "../schema/products";
-import { UploadImgType } from "@/constants/dashboard/types";
+import { ProductSchemaType, SizeColorStockAndImagesType } from "../types";
 
 // create
 export const createProduct = async (productInfo: ProductSchemaType) => {
-  return await db.transaction(async (tx) => {
-    try {
-      const { success, data } = productSchema.safeParse(productInfo);
-      if (!success) {
-        return { error: "products validation failed !" };
-      }
+  try {
+    const { success, data } = productSchema.safeParse(productInfo);
+    if (!success) {
+      return { error: "products validation failed !" };
+    }
+    if (!data.sizeColorStockAndImage.length) {
+      return { message: "Updating Asserts & Stocks is Required" };
+    }
 
-      const colorAndImgArr = new Map<string, UploadImgType[]>();
+    const colorAndImgArr = new Map<string, UploadImgType[]>();
 
-      for (const sizeArr of data.sizeColorStockAndImage) {
-        for (const colorAndImgs of sizeArr.otherInfo) {
-          if (!colorAndImgArr.has(colorAndImgs.color)) {
-            const images: UploadImgType[] = [];
-            for (const imgFile of colorAndImgs.imageArr) {
-              const imgData = await uploadImgToCloude(imgFile);
-              images.push(imgData);
-            }
-            colorAndImgArr.set(colorAndImgs.color, images);
+    for (const sizeArr of data.sizeColorStockAndImage) {
+      for (const colorAndImgs of sizeArr.otherInfo) {
+        if (!colorAndImgArr.has(colorAndImgs.color)) {
+          const images: UploadImgType[] = [];
+          for (const imgFile of colorAndImgs.imageArr) {
+            const imgData = await uploadImgToCloude(imgFile);
+            images.push(imgData);
           }
+          colorAndImgArr.set(colorAndImgs.color, images);
         }
       }
+    }
 
-      const {
+    const {
+      category,
+      description,
+      discountInPercent,
+      dseBulletin,
+      finalPrice,
+      gender,
+      givenPrice,
+      material,
+      name,
+      originalPrice,
+      qualification,
+      sizeColorStockAndImage,
+      totalStock,
+      subCategory,
+      CODoption,
+      insideDhakaDelevery,
+      outsideDhakaDelevery,
+      returnTime,
+      warranty,
+    } = data;
+
+    let firstImage = "";
+    for (const info of colorAndImgArr) {
+      if (!firstImage) {
+        const imgArr = info[1];
+        firstImage = imgArr[0].secure_url;
+      }
+    }
+
+    const productName = name.trim();
+    const productSlug = convertToKebabCase(productName);
+
+    // creating product
+    const [product] = await db
+      .insert(products)
+      .values({
         category,
         description,
-        discountInPercent,
-        dseBulletin,
-        finalPrice,
+        originalPrice: Number(originalPrice),
+        discountInPercent: Number(discountInPercent),
+        finalPrice: Number(finalPrice),
+        givenPrice: Number(givenPrice),
         gender,
-        givenPrice,
         material,
-        name,
-        originalPrice,
+        name: productName,
+        slug: productSlug,
         qualification,
-        sizeColorStockAndImage,
+        subCategory,
         totalStock,
-        subCategory,
-        CODoption,
-        insideDhakaDelevery,
-        outsideDhakaDelevery,
+        codoptions: CODoption,
         returnTime,
-        warranty,
-      } = data;
+        inDhakaPrice: Number(insideDhakaDelevery),
+        outDhakaPrice: Number(outsideDhakaDelevery),
+        warranty: warranty,
+        mainImgUrl: firstImage,
+      })
+      .returning();
 
-      let firstImage = "";
-      for (const info of colorAndImgArr) {
-        if (!firstImage) {
-          const imgArr = info[1];
-          firstImage = imgArr[0].secure_url;
-        }
-      }
-
-      const productName = name.trim();
-      const productSlug = convertToKebabCase(productName);
-
-      // creating product
-      const [product] = await tx
-        .insert(products)
-        .values({
-          category,
-          description,
-          originalPrice: Number(originalPrice),
-          discountInPercent: Number(discountInPercent),
-          finalPrice: Number(finalPrice),
-          givenPrice: Number(givenPrice),
-          gender,
-          material,
-          name: productName,
-          slug: productSlug,
-          qualification,
-          subCategory,
-          totalStock,
-          codoptions: CODoption,
-          returnTime,
-          inDhakaPrice: Number(insideDhakaDelevery),
-          outDhakaPrice: Number(outsideDhakaDelevery),
-          warranty: warranty,
-          mainImgUrl: firstImage,
-        })
+    // inserting bulletin
+    for (let i = 0; i < dseBulletin.length; i++) {
+      await db.insert(desBulletin).values({
+        productId: product.id,
+        text: dseBulletin[i].text,
+        title: dseBulletin[i].title,
+      });
+    }
+    // inserting sizes
+    for (const sizeAndOtherInfo of sizeColorStockAndImage) {
+      const [size] = await db
+        .insert(sizes)
+        .values({ productId: product.id, size: sizeAndOtherInfo.size })
         .returning();
-
-      // inserting bulletin
-      for (let i = 0; i < dseBulletin.length; i++) {
-        await tx.insert(desBulletin).values({
-          productId: product.id,
-          text: dseBulletin[i].text,
-          title: dseBulletin[i].title,
-        });
-      }
-      // inserting sizes
-      for (const sizeAndOtherInfo of sizeColorStockAndImage) {
-        const [size] = await tx
-          .insert(sizes)
-          .values({ productId: product.id, size: sizeAndOtherInfo.size })
-          .returning();
-        for (const otherInfo of sizeAndOtherInfo.otherInfo) {
-          const [info] = await tx
-            .insert(colorAndStocks)
-            .values({
-              sizeId: size.id,
-              color: otherInfo.color,
-              stock: Number(otherInfo.stock),
-              tailwind: otherInfo.tailwind,
-            })
-            .returning();
-
-          const imgArr = colorAndImgArr.get(otherInfo.color);
-          if (imgArr) {
-            for (const imgInfo of imgArr) {
-              await tx.insert(images).values({
-                colorAndStockId: info.id,
-                publicId: imgInfo.public_id,
-                secureUrl: imgInfo.secure_url,
-              });
-            }
-          }
-        }
-      }
-
-      return { message: "new product has created" };
-    } catch (error) {
-      return handleServerError(error);
-    }
-  });
-};
-// update
-export const updateProductWithoutAsserts = async ({
-  productInfo,
-  previousSlug,
-}: {
-  productInfo: ProductSchemaType;
-  previousSlug: string;
-}) => {
-  return await db.transaction(async (tx) => {
-    try {
-      const { success, data } = productSchema.safeParse(productInfo);
-      if (!success) {
-        return { error: "products validation failed !" };
-      }
-
-      const {
-        category,
-        description,
-        discountInPercent,
-        finalPrice,
-        gender,
-        givenPrice,
-        material,
-        name,
-        originalPrice,
-        qualification,
-        subCategory,
-        CODoption,
-        insideDhakaDelevery,
-        outsideDhakaDelevery,
-        returnTime,
-        warranty,
-      } = data;
-      const productName = name.trim();
-      const productSlug = convertToKebabCase(productName);
-
-      await tx
-        .update(products)
-        .set({
-          category,
-          description,
-          originalPrice: Number(originalPrice),
-          discountInPercent: Number(discountInPercent),
-          finalPrice: Number(finalPrice),
-          givenPrice: Number(givenPrice),
-          gender,
-          material,
-          name: productName,
-          slug: productSlug,
-          qualification,
-          subCategory,
-          codoptions: CODoption,
-          returnTime,
-          inDhakaPrice: Number(insideDhakaDelevery),
-          outDhakaPrice: Number(outsideDhakaDelevery),
-          warranty: warranty,
-        })
-        .where(eq(products.slug, previousSlug));
-
-      return { message: "Product has updated", newSlug: productSlug };
-    } catch (error) {
-      return handleServerError(error);
-    }
-  });
-};
-export const updateProductNewAsserts = async ({
-  productInfo,
-  productId,
-}: {
-  productInfo: ProductSchemaType;
-  productId: string | undefined;
-}) => {
-  return await db.transaction(async (tx) => {
-    try {
-      const { success, data } = productSchema.safeParse(productInfo);
-      if (!success) {
-        return { error: "products validation failed !" };
-      }
-
-      if (!productId) {
-        return { errro: "Product id is not found!" };
-      }
-
-      const colorAndImgArr = new Map<string, UploadImgType[]>();
-
-      for (const sizeArr of data.sizeColorStockAndImage) {
-        for (const colorAndImgs of sizeArr.otherInfo) {
-          if (!colorAndImgArr.has(colorAndImgs.color)) {
-            const images: UploadImgType[] = [];
-            for (const imgFile of colorAndImgs.imageArr) {
-              const imgData = await uploadImgToCloude(imgFile);
-              images.push(imgData);
-            }
-            colorAndImgArr.set(colorAndImgs.color, images);
-          }
-        }
-      }
-
-      // inserting sizes
-      for (const sizeAndOtherInfo of data.sizeColorStockAndImage) {
-        const [size] = await tx
-          .insert(sizes)
-          .values({ productId, size: sizeAndOtherInfo.size })
-          .returning();
-        for (const otherInfo of sizeAndOtherInfo.otherInfo) {
-          const [info] = await tx
-            .insert(colorAndStocks)
-            .values({
-              sizeId: size.id,
-              color: otherInfo.color,
-              stock: Number(otherInfo.stock),
-              tailwind: otherInfo.tailwind,
-            })
-            .returning();
-
-          const imgArr = colorAndImgArr.get(otherInfo.color);
-          if (imgArr) {
-            for (const imgInfo of imgArr) {
-              await tx.insert(images).values({
-                colorAndStockId: info.id,
-                publicId: imgInfo.public_id,
-                secureUrl: imgInfo.secure_url,
-              });
-            }
-          }
-        }
-      }
-
-      // update stocks
-      const addedStocks = totalStockHelper(data.sizeColorStockAndImage);
-      const [info] = await tx
-        .select({ existedStock: products.totalStock })
-        .from(products)
-        .where(eq(products.id, productId));
-      await tx
-        .update(products)
-        .set({ totalStock: addedStocks + info.existedStock })
-        .where(eq(products.id, productId));
-      return { message: "Product asserts has updated" };
-
-      ///
-    } catch (error) {
-      return handleServerError(error);
-    }
-  });
-};
-export const updateInProductExistedAsserts = async ({
-  info,
-  sizeId,
-}: {
-  sizeId: string;
-  info: SizeColorStockAndImagesType[];
-}) => {
-  return await db.transaction(async (tx) => {
-    try {
-      const [size] = await tx.select().from(sizes).where(eq(sizes.id, sizeId));
-      if (!size) {
-        return { errro: "Size not found !" };
-      }
-      // inserting sizes
-      if (info[0].size !== size.size) {
-        return { error: "size not matched !" };
-      }
-
-      const colorAndImgArr = new Map<string, UploadImgType[]>();
-
-      for (const obj of info[0].otherInfo) {
-        const images: UploadImgType[] = [];
-        for (const imgFile of obj.imageArr) {
-          const imgData = await uploadImgToCloude(imgFile);
-          images.push(imgData);
-        }
-        colorAndImgArr.set(obj.color, images);
-      }
-
-      for (const otherInfo of info[0].otherInfo) {
-        const [info] = await tx
+      for (const otherInfo of sizeAndOtherInfo.otherInfo) {
+        const [info] = await db
           .insert(colorAndStocks)
           .values({
-            sizeId,
+            sizeId: size.id,
             color: otherInfo.color,
             stock: Number(otherInfo.stock),
             tailwind: otherInfo.tailwind,
@@ -341,7 +132,7 @@ export const updateInProductExistedAsserts = async ({
         const imgArr = colorAndImgArr.get(otherInfo.color);
         if (imgArr) {
           for (const imgInfo of imgArr) {
-            await tx.insert(images).values({
+            await db.insert(images).values({
               colorAndStockId: info.id,
               publicId: imgInfo.public_id,
               secureUrl: imgInfo.secure_url,
@@ -349,191 +140,492 @@ export const updateInProductExistedAsserts = async ({
           }
         }
       }
-
-      const newStocks = totalStockHelper(info);
-      const data = await tx
-        .select({ totalStock: products.totalStock })
-        .from(products)
-        .where(eq(products.id, size.productId));
-      await tx
-        .update(products)
-        .set({ totalStock: data[0].totalStock + newStocks })
-        .where(eq(products.id, size.productId));
-      return { message: "new data added" };
-    } catch (error) {
-      return handleServerError(error);
     }
-  });
+
+    return { message: "new product has created" };
+  } catch (error) {
+    return handleServerError(error);
+  }
+};
+
+export const addNewImageToExistedStockAndColor = async ({
+  colorAndStockId,
+  imageFile,
+}: {
+  imageFile: File;
+  colorAndStockId: string;
+}) => {
+  try {
+    const { public_id, secure_url } = await uploadImgToCloude(imageFile);
+    await db.insert(images).values({
+      colorAndStockId,
+      publicId: public_id,
+      secureUrl: secure_url,
+    });
+    return { message: "Image Added" };
+  } catch (error) {
+    return handleServerError(error);
+  }
+};
+// update
+export const updateProductWithoutAsserts = async ({
+  productInfo,
+  previousSlug,
+}: {
+  productInfo: ProductSchemaType;
+  previousSlug: string;
+}) => {
+  try {
+    const { success, data } = productSchema.safeParse(productInfo);
+    if (!success) {
+      return { error: "products validation failed !" };
+    }
+
+    const {
+      category,
+      description,
+      discountInPercent,
+      finalPrice,
+      gender,
+      givenPrice,
+      material,
+      name,
+      originalPrice,
+      qualification,
+      subCategory,
+      CODoption,
+      insideDhakaDelevery,
+      outsideDhakaDelevery,
+      returnTime,
+      warranty,
+    } = data;
+    const productName = name.trim();
+    const productSlug = convertToKebabCase(productName);
+
+    await db
+      .update(products)
+      .set({
+        category,
+        description,
+        originalPrice: Number(originalPrice),
+        discountInPercent: Number(discountInPercent),
+        finalPrice: Number(finalPrice),
+        givenPrice: Number(givenPrice),
+        gender,
+        material,
+        name: productName,
+        slug: productSlug,
+        qualification,
+        subCategory,
+        codoptions: CODoption,
+        returnTime,
+        inDhakaPrice: Number(insideDhakaDelevery),
+        outDhakaPrice: Number(outsideDhakaDelevery),
+        warranty: warranty,
+      })
+      .where(eq(products.slug, previousSlug));
+
+    return { message: "Product has updated", newSlug: productSlug };
+  } catch (error) {
+    return handleServerError(error);
+  }
+};
+
+export const updateProductNewAsserts = async ({
+  productInfo,
+  productId,
+}: {
+  productInfo: ProductSchemaType;
+  productId: string | undefined;
+}) => {
+  try {
+    const { success, data } = productSchema.safeParse(productInfo);
+    if (!success) {
+      return { error: "products validation failed !" };
+    }
+
+    if (!productId) {
+      return { errro: "Product id is not found!" };
+    }
+
+    const colorAndImgArr = new Map<string, UploadImgType[]>();
+
+    for (const sizeArr of data.sizeColorStockAndImage) {
+      for (const colorAndImgs of sizeArr.otherInfo) {
+        if (!colorAndImgArr.has(colorAndImgs.color)) {
+          const images: UploadImgType[] = [];
+          for (const imgFile of colorAndImgs.imageArr) {
+            const imgData = await uploadImgToCloude(imgFile);
+            images.push(imgData);
+          }
+          colorAndImgArr.set(colorAndImgs.color, images);
+        }
+      }
+    }
+
+    // inserting sizes
+    for (const sizeAndOtherInfo of data.sizeColorStockAndImage) {
+      const [size] = await db
+        .insert(sizes)
+        .values({ productId, size: sizeAndOtherInfo.size })
+        .returning();
+      for (const otherInfo of sizeAndOtherInfo.otherInfo) {
+        const [info] = await db
+          .insert(colorAndStocks)
+          .values({
+            sizeId: size.id,
+            color: otherInfo.color,
+            stock: Number(otherInfo.stock),
+            tailwind: otherInfo.tailwind,
+          })
+          .returning();
+
+        const imgArr = colorAndImgArr.get(otherInfo.color);
+        if (imgArr) {
+          for (const imgInfo of imgArr) {
+            await db.insert(images).values({
+              colorAndStockId: info.id,
+              publicId: imgInfo.public_id,
+              secureUrl: imgInfo.secure_url,
+            });
+          }
+        }
+      }
+    }
+
+    // update stocks
+    const addedStocks = totalStockHelper(data.sizeColorStockAndImage);
+    const [info] = await db
+      .select({ existedStock: products.totalStock })
+      .from(products)
+      .where(eq(products.id, productId));
+    await db
+      .update(products)
+      .set({ totalStock: addedStocks + info.existedStock })
+      .where(eq(products.id, productId));
+    return { message: "Product asserts has updated" };
+
+    ///
+  } catch (error) {
+    return handleServerError(error);
+  }
+};
+export const updateInProductExistedAsserts = async ({
+  info,
+  sizeId,
+}: {
+  sizeId: string;
+  info: SizeColorStockAndImagesType[];
+}) => {
+  try {
+    const [size] = await db.select().from(sizes).where(eq(sizes.id, sizeId));
+    if (!size) {
+      return { errro: "Size not found !" };
+    }
+    // inserting sizes
+    if (info[0].size !== size.size) {
+      return { error: "size not matched !" };
+    }
+
+    const colorAndImgArr = new Map<string, UploadImgType[]>();
+
+    for (const obj of info[0].otherInfo) {
+      const images: UploadImgType[] = [];
+      for (const imgFile of obj.imageArr) {
+        const imgData = await uploadImgToCloude(imgFile);
+        images.push(imgData);
+      }
+      colorAndImgArr.set(obj.color, images);
+    }
+
+    for (const otherInfo of info[0].otherInfo) {
+      const [info] = await db
+        .insert(colorAndStocks)
+        .values({
+          sizeId,
+          color: otherInfo.color,
+          stock: Number(otherInfo.stock),
+          tailwind: otherInfo.tailwind,
+        })
+        .returning();
+
+      const imgArr = colorAndImgArr.get(otherInfo.color);
+      if (imgArr) {
+        for (const imgInfo of imgArr) {
+          await db.insert(images).values({
+            colorAndStockId: info.id,
+            publicId: imgInfo.public_id,
+            secureUrl: imgInfo.secure_url,
+          });
+        }
+      }
+    }
+
+    const newStocks = totalStockHelper(info);
+    const data = await db
+      .select({ totalStock: products.totalStock })
+      .from(products)
+      .where(eq(products.id, size.productId));
+    await db
+      .update(products)
+      .set({ totalStock: data[0].totalStock + newStocks })
+      .where(eq(products.id, size.productId));
+    return { message: "new data added" };
+  } catch (error) {
+    return handleServerError(error);
+  }
 };
 
 export const updateExistedStock = async ({
   colorId,
   newStock,
-  productId,
+  productSlug,
   previousStock,
 }: {
   colorId: string;
-  productId: string;
+  productSlug: string;
   newStock: number;
   previousStock: number;
 }) => {
-  return await db.transaction(async (tx) => {
-    try {
-      // update stocks for products
-      const [totalStock] = await tx
-        .select({ stock: products.totalStock })
-        .from(products)
-        .where(eq(products.id, productId));
-      const updatedStock = totalStock.stock - previousStock + newStock;
-      await tx
-        .update(products)
-        .set({ totalStock: updatedStock })
-        .where(eq(products.id, productId));
-
-      // update stock to color
-      await tx
-        .update(colorAndStocks)
-        .set({ stock: newStock })
-        .where(eq(colorAndStocks.id, colorId));
-
-      return { message: "Stock has updated" };
-    } catch (error) {
-      return handleServerError(error);
-    }
-  });
-};
-
-// query
-export const getProductsForTable = async ({
-  limit,
-  offset,
-  search,
-  sorting,
-  categoryInfo,
-}: {
-  limit: number;
-  offset: number;
-  search?: string;
-  sorting?: SortingState;
-  categoryInfo?: CategoryFilterInfoType;
-}) => {
   try {
-    const productQuery = db
-      .select({
-        id: products.id,
-        category: products.category,
-        finalPrice: products.finalPrice,
-        mainImgUrl: products.mainImgUrl,
-        name: products.name,
-        slug: products.slug,
-        subCategory: products.subCategory,
-        totalStock: products.totalStock,
-      })
-      .from(products);
-
-    const conditions = [];
-    if (search) {
-      conditions.push(ilike(products.name, `%${search}%`));
-    }
-    if (categoryInfo?.category) {
-      conditions.push(eq(products.category, categoryInfo.category));
-    }
-    if (categoryInfo?.sub_category) {
-      conditions.push(ilike(products.subCategory, categoryInfo.sub_category));
-    }
-    if (conditions.length) {
-      productQuery.where(and(...conditions));
-    }
-
-    if (sorting?.length) {
-      let sortInfo: SQL<unknown> | null = null;
-      if (sorting[0].id === "name") {
-        sortInfo = sorting[0].desc ? desc(products.name) : asc(products.name);
-      }
-      if (sorting[0].id === "category") {
-        sortInfo = sorting[0].desc
-          ? desc(products.category)
-          : asc(products.category);
-      }
-      if (sorting[0].id === "subCategory") {
-        sortInfo = sorting[0].desc
-          ? desc(products.subCategory)
-          : asc(products.subCategory);
-      }
-      if (sorting[0].id === "totalStock" || sorting[0].id === "status") {
-        sortInfo = sorting[0].desc
-          ? desc(products.totalStock)
-          : asc(products.totalStock);
-      }
-      if (sorting[0].id === "finalPrice") {
-        sortInfo = sorting[0].desc
-          ? desc(products.finalPrice)
-          : asc(products.finalPrice);
-      }
-      if (sortInfo) {
-        productQuery.orderBy(sortInfo);
-      }
-    }
-    const allProducts = await productQuery.limit(limit).offset(offset);
-
-    const [{ productCount }] = await db
-      .select({ productCount: count() })
+    // update stocks for products
+    const [totalStock] = await db
+      .select({ stock: products.totalStock })
       .from(products)
-      .where(and(...conditions));
+      .where(eq(products.slug, productSlug));
+    const updatedStock = totalStock.stock - previousStock + newStock;
+    await db
+      .update(products)
+      .set({ totalStock: updatedStock })
+      .where(eq(products.slug, productSlug));
 
-    return {
-      allProducts,
-      productCount,
-    };
+    // update stock to color
+    await db
+      .update(colorAndStocks)
+      .set({ stock: newStock })
+      .where(eq(colorAndStocks.id, colorId));
+
+    return { message: "Stock has updated" };
   } catch (error) {
     return handleServerError(error);
   }
 };
-
-export const getSingleProductWithoutAsserts = async ({
-  slug,
+export const exchangeExistedImage = async ({
+  publicId,
+  colorAndStockId,
+  imgFile,
+  imgId,
 }: {
-  slug: string;
+  publicId: string;
+  imgFile: File;
+  colorAndStockId: string;
+  imgId: string;
 }) => {
   try {
-    const product = await db.query.products.findFirst({
-      where: eq(products.slug, slug),
-      with: { desBulletin: true },
+    await deleteImgToCloude(publicId);
+    const { public_id, secure_url } = await uploadImgToCloude(imgFile);
+    await db
+      .delete(images)
+      .where(
+        and(eq(images.colorAndStockId, colorAndStockId), eq(images.id, imgId)),
+      );
+    await db.insert(images).values({
+      colorAndStockId,
+      publicId: public_id,
+      secureUrl: secure_url,
     });
-    if (!product) {
-      return { error: "Product not found !" };
-    }
-    return { product };
+
+    return { message: "Image Exhanged" };
   } catch (error) {
     return handleServerError(error);
   }
 };
-
-export const getSingleProductOnlyAsserts = async ({
+export const addMoreColorsToSize = async ({
+  info,
   productId,
 }: {
-  productId: string | undefined;
+  info: SizeColorStockAndImagesType;
+  productId: string;
 }) => {
   try {
-    if (!productId) {
-      return { error: "product not found" };
+    if (!info.otherInfo) {
+      return { message: "Updating Asserts & Stocks is Required" };
     }
-    const data: DBSizeColorStockAndImagesType[] = await db.query.sizes.findMany(
-      {
-        where: eq(sizes.productId, productId),
-        with: { colorAndStocks: { with: { images: true } } },
-      },
-    );
-    return { asserts: data };
+
+    const colorAndImgArr = new Map<string, UploadImgType[]>();
+
+    for (const colorAndImgs of info.otherInfo) {
+      if (!colorAndImgArr.has(colorAndImgs.color)) {
+        const images: UploadImgType[] = [];
+        for (const imgFile of colorAndImgs.imageArr) {
+          const imgData = await uploadImgToCloude(imgFile);
+          images.push(imgData);
+        }
+        colorAndImgArr.set(colorAndImgs.color, images);
+      }
+    }
+
+    let newStocks: number = 0;
+    // inserting sizes
+    const [size] = await db
+      .select()
+      .from(sizes)
+      .where(and(eq(sizes.size, info.size), eq(sizes.productId, productId)));
+    if (!size) {
+      return { error: "Error occurs" };
+    }
+    for (const otherInfo of info.otherInfo) {
+      const [info] = await db
+        .insert(colorAndStocks)
+        .values({
+          sizeId: size.id,
+          color: otherInfo.color,
+          stock: Number(otherInfo.stock),
+          tailwind: otherInfo.tailwind,
+        })
+        .returning();
+      newStocks += Number(otherInfo.stock);
+
+      const imgArr = colorAndImgArr.get(otherInfo.color);
+      if (imgArr) {
+        for (const imgInfo of imgArr) {
+          await db.insert(images).values({
+            colorAndStockId: info.id,
+            publicId: imgInfo.public_id,
+            secureUrl: imgInfo.secure_url,
+          });
+        }
+      }
+    }
+    // update stocks
+    const [{ totalStock }] = await db
+      .select({ totalStock: products.totalStock })
+      .from(products)
+      .where(eq(products.id, productId));
+    await db
+      .update(products)
+      .set({ totalStock: totalStock + newStocks })
+      .where(eq(products.id, productId));
+
+    return { message: "New Color with Images has added" };
   } catch (error) {
     return handleServerError(error);
   }
 };
-
 // delete
-export const deleteProducts = async () => {
+export const deleteExistedImage = async ({ imgId }: { imgId: string }) => {
   try {
-    await db.delete(products);
+    await db.delete(images).where(eq(images.id, imgId));
+    // todo : delete form cloude also
+
+    return { message: "Image Deleted" };
+  } catch (error) {
+    return handleServerError(error);
+  }
+};
+export const deleteColorOfSpecifiedSize = async ({
+  productId,
+  colorAndStockId,
+}: {
+  productId: string;
+  colorAndStockId: string;
+}) => {
+  try {
+    const [{ stock }] = await db
+      .select({ stock: colorAndStocks.stock })
+      .from(colorAndStocks)
+      .where(eq(colorAndStocks.id, colorAndStockId));
+    const [{ totalStock }] = await db
+      .select({ totalStock: products.totalStock })
+      .from(products)
+      .where(eq(products.id, productId));
+
+    await db
+      .delete(colorAndStocks)
+      .where(eq(colorAndStocks.id, colorAndStockId));
+
+    await db
+      .update(products)
+      .set({ totalStock: totalStock - stock })
+      .where(eq(products.id, productId));
+
+    // delete images
+    const imagesInfo = await db
+      .select({ publicId: images.publicId })
+      .from(images)
+      .where(eq(images.colorAndStockId, colorAndStockId));
+    for (const data of imagesInfo) {
+      await deleteImgToCloude(data.publicId);
+    }
+
+    return { message: "Color Item Deleted" };
+  } catch (error) {
+    return handleServerError(error);
+  }
+};
+export const deleteSpecifiedSize = async ({
+  productId,
+  sizeId,
+}: {
+  productId: string;
+  sizeId: string;
+}) => {
+  try {
+    const info = await db
+      .select()
+      .from(colorAndStocks)
+      .where(eq(colorAndStocks.sizeId, sizeId));
+    const delTotalStock = info.reduce((sum, item) => sum + item.stock, 0);
+
+    const [{ totalStock }] = await db
+      .select({ totalStock: products.totalStock })
+      .from(products)
+      .where(eq(products.id, productId));
+
+    await db
+      .update(products)
+      .set({ totalStock: totalStock - delTotalStock })
+      .where(eq(products.id, productId));
+
+    // extracting for deleting images
+    const colorAndStockInfo = await db
+      .select({ colorAndStockId: colorAndStocks.id })
+      .from(colorAndStocks)
+      .where(eq(colorAndStocks.sizeId, sizeId));
+
+    for (const { colorAndStockId } of colorAndStockInfo) {
+      // delete images
+      const imagesInfo = await db
+        .select({ publicId: images.publicId })
+        .from(images)
+        .where(eq(images.colorAndStockId, colorAndStockId));
+      for (const data of imagesInfo) {
+        await deleteImgToCloude(data.publicId);
+      }
+    }
+
+    // delete the size
+    await db.delete(sizes).where(eq(sizes.id, sizeId));
+    return { message: "Color Item Deleted" };
+  } catch (error) {
+    return handleServerError(error);
+  }
+};
+export const deleteProduct = async ({ productId }: { productId: string }) => {
+  try {
+    const imagesInfo = await db
+      .selectDistinct({ publicId: images.publicId })
+      .from(images)
+      .innerJoin(colorAndStocks, eq(images.colorAndStockId, colorAndStocks.id))
+      .innerJoin(sizes, eq(colorAndStocks.sizeId, sizes.id))
+      .where(eq(sizes.productId, productId));
+
+    const imagesPublicIdArr = imagesInfo.map((img) => img.publicId);
+    // todo: delete those public id from cloude
+    console.log(imagesPublicIdArr, "lsdfa");
+
+    // delete the size
+    await db.delete(products).where(eq(products.id, productId));
     return { message: "Product Deleted" };
   } catch (error) {
     return handleServerError(error);

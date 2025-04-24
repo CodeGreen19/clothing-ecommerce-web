@@ -1,16 +1,29 @@
 "use client";
 import { FileInput, FileUploader } from "@/components/ui/file-upload";
 import { DashboardButton } from "@/features/dashboard/shared/DashboardButton";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CloudUpload } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { MdCancel } from "react-icons/md";
+import {
+  addNewImageToExistedStockAndColor,
+  exchangeExistedImage,
+} from "../../../server/product.action";
+import { handleSuccess } from "@/lib/helper";
 
 export default function EditExistedImageField({
   type,
+  colorAndStockId,
+  publicId,
+  imgId,
 }: {
   type: "add_new" | "exchange";
+  colorAndStockId: string;
+  publicId?: string;
+  imgId?: string;
 }) {
+  const qc = useQueryClient();
   const [files, setFiles] = useState<File[] | null>(null);
 
   const dropZoneConfig = {
@@ -18,13 +31,36 @@ export default function EditExistedImageField({
     maxSize: 1024 * 1024 * 5,
     multiple: true,
   };
+
+  // mutations
+  const addMutate = useMutation({
+    mutationFn: addNewImageToExistedStockAndColor,
+    onSuccess: async (info) => {
+      setFiles(null);
+      await handleSuccess(info, qc, ["asserts"]);
+    },
+  });
+  const exchangeMutate = useMutation({
+    mutationFn: exchangeExistedImage,
+    onSuccess: async (info) => {
+      setFiles(null);
+      await handleSuccess(info, qc, ["asserts"]);
+    },
+  });
+
   const uploadNew = () => {
-    console.log("upload new");
+    if (files?.length)
+      addMutate.mutate({ colorAndStockId, imageFile: files[0] });
   };
   const exchange = () => {
-    console.log("exchange");
+    if (files?.length && publicId && imgId)
+      exchangeMutate.mutate({
+        colorAndStockId,
+        imgFile: files[0],
+        publicId,
+        imgId,
+      });
   };
-
   return (
     <div className="sub-form-box drop-shadow">
       {files && files.length > 0 ? (
@@ -46,6 +82,7 @@ export default function EditExistedImageField({
           {type === "add_new" ? (
             <DashboardButton
               onClick={uploadNew}
+              pending={addMutate.isPending}
               className="mt-2 w-full py-4"
               variant={"signature"}
             >
@@ -54,6 +91,7 @@ export default function EditExistedImageField({
           ) : (
             <DashboardButton
               onClick={exchange}
+              pending={exchangeMutate.isPending}
               className="mt-2 w-full py-4"
               variant={"signature"}
             >

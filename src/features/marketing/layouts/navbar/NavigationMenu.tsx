@@ -47,7 +47,7 @@ export function NavigationMenuComp() {
               </li>
               <li>
                 {M_GENERIC_PRODUCT_CATEGORIES.map((item) => (
-                  <Link href={item.url} key={item.name}>
+                  <Link href={`/product-category/${item.url}`} key={item.name}>
                     <div className="p-0 text-black">{item.name}</div>
                   </Link>
                 ))}

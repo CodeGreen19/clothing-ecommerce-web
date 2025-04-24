@@ -4,12 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { handleSuccess } from "@/lib/helper";
 import { SortingState } from "@tanstack/react-table";
 import { UseFormReturn } from "react-hook-form";
-import { CategoryFilterInfoType, ProductSchemaType } from "../types";
 import {
   getProductsForTable,
-  getSingleProductOnlyAsserts,
   getSingleProductWithoutAsserts,
-} from "../server/product.action";
+} from "../server/product.query.action";
+import { CategoryFilterInfoType, ProductSchemaType } from "../types";
 
 export const useAllProductsForTable = ({
   pageIndex,
@@ -62,7 +61,7 @@ export const useProductWithoutAsserts = ({
   form: UseFormReturn<ProductSchemaType>;
 }) => {
   return useQuery({
-    queryKey: ["product_without_assert"],
+    queryKey: ["product_without_assert", slug],
     queryFn: async () => {
       const data = await getSingleProductWithoutAsserts({ slug });
       if ("error" in data) {
@@ -89,6 +88,7 @@ export const useProductWithoutAsserts = ({
           data.product.discountInPercent.toString(),
         );
         form.setValue("finalPrice", data.product.finalPrice.toString());
+        form.setValue("totalStock", 1);
         form.setValue("insideDhakaDelevery", data.product.inDhakaPrice);
         form.setValue("outsideDhakaDelevery", data.product.outDhakaPrice);
         form.setValue("warranty", data.product.warranty);
@@ -98,26 +98,6 @@ export const useProductWithoutAsserts = ({
         // todo:
 
         return { product: data.product };
-      }
-    },
-  });
-};
-
-export const useGetProductAsserts = ({
-  productId,
-}: {
-  productId: string | undefined;
-}) => {
-  return useQuery({
-    queryKey: ["asserts"],
-    queryFn: async () => {
-      const data = await getSingleProductOnlyAsserts({ productId });
-      if ("error" in data) {
-        handleSuccess(data);
-
-        return { asserts: [] };
-      } else {
-        return { asserts: data.asserts };
       }
     },
   });

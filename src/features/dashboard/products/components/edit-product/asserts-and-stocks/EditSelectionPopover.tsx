@@ -13,28 +13,38 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 import { useEditColorStockImageStore } from "../../../store/use-product-edit";
 import EditImgUploadAndLists from "./EditImgUploadAndLists";
 import EditSubSelectionPopover from "./EditSubSelectionPopover";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { addMoreColorsToSize } from "../../../server/product.action";
+import { handleSuccess } from "@/lib/helper";
 
 const EditSelectionPopover = ({
   side = "bottom",
   children,
+  productId,
 }: {
   side?: "bottom" | "right";
   children: ReactNode;
+  productId: string;
 }) => {
   // hooks
-  const { sizeColorStockImgArr, selectedSize } = useEditColorStockImageStore();
+  const qc = useQueryClient();
+  const { sizeColorStockImgArr, selectedSize, reset } =
+    useEditColorStockImageStore();
   //states
   const [error, setError] = useState("");
   // refs
   const popoverCloseRef = useRef<HTMLButtonElement | null>(null);
 
   // update color mutattion
-  // const { isPending, mutate } = useMutation({
-  //   mutationFn: updateco,
-  //   onSuccess: async (info) => {
-  //     await handleSuccess(info, qc, ["asserts"]);
-  //   },
-  // });
+  const { isPending, mutate } = useMutation({
+    mutationFn: addMoreColorsToSize,
+    onSuccess: async (info) => {
+      if (info.message) {
+        reset(selectedSize);
+      }
+      await handleSuccess(info, qc, ["asserts"]);
+    },
+  });
 
   // submit
   const handleConfirm = () => {
@@ -54,8 +64,11 @@ const EditSelectionPopover = ({
 
     if (hasError) return;
 
+    console.log("info", info);
+
     // update here todo:
-    // mutate({ info, sizeId: selectedSizeId });
+
+    mutate({ info: sizeColorStockImgArr[0], productId });
   };
 
   useEffect(() => {
@@ -67,14 +80,20 @@ const EditSelectionPopover = ({
   }, [error]);
 
   const donotHaveAnything =
-    sizeColorStockImgArr.length &&
-    sizeColorStockImgArr[0].otherInfo.length === 0
-      ? true
-      : false;
+    sizeColorStockImgArr.length !== 0 &&
+    sizeColorStockImgArr[0].otherInfo.length !== 0 &&
+    sizeColorStockImgArr[0].otherInfo[0].imageArr.length !== 0
+      ? false
+      : true;
 
-  // todo: onOpenChange={() => handleConfirm()} it should work
   return (
-    <Popover>
+    <Popover
+      onOpenChange={(e) => {
+        if (!e) {
+          reset(selectedSize);
+        }
+      }}
+    >
       <div className="flex items-center justify-start">
         <Button variant={"outline"} asChild>
           <PopoverTrigger className="rounded-3xl text-pink-500">
@@ -104,7 +123,7 @@ const EditSelectionPopover = ({
             variant={"signature"}
             type="button"
             onClick={handleConfirm}
-            pending={false}
+            pending={isPending}
             disabled={donotHaveAnything}
           >
             Update

@@ -1,3 +1,5 @@
+"use client";
+
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Popover,
@@ -5,42 +7,61 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+import { AllPossibleSizesType } from "@/constants/dashboard/types";
+import { DashboardButton } from "@/features/dashboard/shared/DashboardButton";
+import { handleSuccess } from "@/lib/helper";
 import { cn } from "@/lib/utils";
+import { QueryClient, useMutation } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
 import Image from "next/image";
 import { MdOutlineAddAPhoto } from "react-icons/md";
 import { RiExchange2Fill } from "react-icons/ri";
+import { deleteExistedImage } from "../../../server/product.action";
 import { DBSizeColorStockAndImagesType } from "../../../types";
-import { AllPossibleSizesType } from "@/constants/dashboard/types";
 import AddMoreColors from "./AddMoreColors";
 import DeleteEntireCard from "./DeleteEntireCard";
-import EditStock from "./EditStock";
 import EditExistedImageField from "./EditExistedImageField";
+import EditStock from "./EditStock";
 
 const ExistedAssertsAndStocks = ({
   info,
   selectedSize,
+  qc,
 }: {
   info: DBSizeColorStockAndImagesType[];
   selectedSize: AllPossibleSizesType;
+  qc: QueryClient;
 }) => {
   const filteredInfo = info.filter((item) => item.size === selectedSize);
-  console.log(filteredInfo);
-
+  // mutations
+  const deleteMutate = useMutation({
+    mutationFn: deleteExistedImage,
+    onSuccess: async (info) => {
+      await handleSuccess(info, qc, ["asserts"]);
+    },
+  });
   //
   if (filteredInfo.length === 0) {
     return <div className="text-red-500"></div>;
   }
+
   return (
     <div>
       <Card className="w-auto rounded-md border-none p-0 shadow-none">
-        <AddMoreColors />
+        <AddMoreColors
+          productId={info[0].productId}
+          sizeId={info.filter((item) => item.size === selectedSize)[0].id}
+        />
         <CardContent className="grid grid-cols-1 gap-2 p-0 lg:grid-cols-2">
           {filteredInfo[0].colorAndStocks.map((item) => (
             <div
               key={item.color}
               className="relative grow space-y-2 rounded-md border bg-white p-3 shadow"
             >
-              <DeleteEntireCard />
+              <DeleteEntireCard
+                colorAndStockId={item.id}
+                productId={info[0].productId}
+              />
               <h1>
                 Color : {item.color}
                 <span
@@ -51,10 +72,10 @@ const ExistedAssertsAndStocks = ({
                 ></span>
               </h1>
 
-              <EditStock colorId={item.id} initialStock={item.stock} />
+              <EditStock qc={qc} colorId={item.id} initialStock={item.stock} />
 
               <div className="flex flex-wrap gap-2">
-                {item.images.map((info) => (
+                {item.images.map((info, i) => (
                   <div key={info.publicId} className="flex-none">
                     <Popover>
                       <PopoverTrigger>
@@ -70,16 +91,34 @@ const ExistedAssertsAndStocks = ({
                         side="right"
                         className="relative w-auto border p-0"
                       >
-                        <div className="absolute right-1 top-0 my-2 -translate-y-1 cursor-pointer rounded">
-                          <Popover>
-                            <PopoverTrigger className="rounded-md bg-white/50 p-2 text-pink-500">
-                              <RiExchange2Fill />
-                            </PopoverTrigger>
-                            <PopoverContent side="right" className="p-0">
-                              <EditExistedImageField type="exchange" />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
+                        {i === 0 ? (
+                          <div className="absolute right-1 top-0 my-2 -translate-y-1 cursor-pointer rounded">
+                            <Popover>
+                              <PopoverTrigger className="rounded-md bg-white/50 p-2 text-pink-500">
+                                <RiExchange2Fill />
+                              </PopoverTrigger>
+                              <PopoverContent side="right" className="p-0">
+                                <EditExistedImageField
+                                  colorAndStockId={info.colorAndStockId}
+                                  publicId={info.publicId}
+                                  imgId={info.id}
+                                  type="exchange"
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        ) : (
+                          <DashboardButton
+                            pending={deleteMutate.isPending}
+                            onClick={() =>
+                              deleteMutate.mutate({ imgId: info.id })
+                            }
+                            className="absolute right-1 top-1 w-8 rounded-md bg-white/50 p-2 !py-0 text-red-500"
+                          >
+                            <Trash2 className="size-4" />
+                          </DashboardButton>
+                        )}
+
                         <Image
                           height={220}
                           width={220}
@@ -97,7 +136,10 @@ const ExistedAssertsAndStocks = ({
                       <MdOutlineAddAPhoto />
                     </PopoverTrigger>
                     <PopoverContent side="right" className="p-0">
-                      <EditExistedImageField type="add_new" />
+                      <EditExistedImageField
+                        colorAndStockId={item.images[0].colorAndStockId}
+                        type="add_new"
+                      />
                     </PopoverContent>
                   </Popover>
                 </div>

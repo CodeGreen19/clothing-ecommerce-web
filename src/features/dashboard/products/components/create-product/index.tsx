@@ -48,7 +48,9 @@ const CreateProductForm = () => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)}>
         <AddProduct reset={form.reset} pending={isPending} />
+
         <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* left section  */}
           <div className="space-y-4 lg:mb-10">
             <GeneralInfo form={form} />
             <CategoryBox form={form} />

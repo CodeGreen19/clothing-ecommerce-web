@@ -7,8 +7,6 @@ export const handleSuccess = async (
   queryClient?: QueryClient,
   query?: string[],
 ) => {
-  console.log(data, "data");
-
   if (data?.message) {
     toast.success(data.message); // ✅ Show success toast
   }

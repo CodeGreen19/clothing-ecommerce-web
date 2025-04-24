@@ -1,7 +1,8 @@
+import DashboardUsers from "@/features/dashboard/users/components";
 import React from "react";
 
 const UsersPage = () => {
-  return <div>Dashboard users</div>;
+  return <DashboardUsers />;
 };
 
 export default UsersPage;

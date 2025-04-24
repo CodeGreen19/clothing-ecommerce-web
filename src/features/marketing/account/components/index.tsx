@@ -1,13 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import React, { ReactNode } from "react";
+import { ACCOUNT_SIDEBAR_ARR } from "../constants";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 const AccountLayout = ({ children }: { children: ReactNode }) => {
-  const arr = [
-    { name: "Dashboard", url: "/account/dashboard" },
-    { name: "Profile", url: "/account/profile" },
-    { name: "Orders", url: "/account/orders" },
-    { name: "WishLists", url: "/account/wishlists" },
-  ];
+  const pathname = usePathname();
+
   return (
     <div className="min-h-screen">
       <div className="h-32 w-full bg-purple-100">banner</div>
@@ -15,9 +16,16 @@ const AccountLayout = ({ children }: { children: ReactNode }) => {
         <div className="w-[250px] flex-none">
           <h1>Sidebar info</h1>
           <ul>
-            {arr.map((item) => (
+            {ACCOUNT_SIDEBAR_ARR.map((item) => (
               <Link key={item.name} href={item.url}>
-                <li className="border p-3">{item.name}</li>
+                <li
+                  className={cn(
+                    "border p-3",
+                    pathname === item.url && "bg-pink-50 text-pink-800",
+                  )}
+                >
+                  {item.name}
+                </li>
               </Link>
             ))}
           </ul>

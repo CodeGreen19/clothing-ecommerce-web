@@ -4,8 +4,9 @@ import { SizeColorStockAndImagesType } from "../types";
 
 type StoreState = {
   selectedSize: AllPossibleSizesType;
+
+  setSelectedSize: (size: AllPossibleSizesType) => void;
   sizeColorStockImgArr: SizeColorStockAndImagesType[];
-  setSize: (size: AllPossibleSizesType) => void;
   setImageFiles: (
     size: AllPossibleSizesType,
     color: string,
@@ -24,9 +25,10 @@ type StoreState = {
 
 export const useSizeColorStockImgStore = create<StoreState>((set) => ({
   sizeColorStockImgArr: [],
+
   selectedSize: "XS",
 
-  setSize: (size) =>
+  setSelectedSize: (size) =>
     set((state) => {
       const existingIndex = state.sizeColorStockImgArr.findIndex(
         (item) => item.size === size,

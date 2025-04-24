@@ -1,4 +1,5 @@
 import { ROLES_ARR } from "@/constants/auth";
+import { relations } from "drizzle-orm";
 import {
   integer,
   pgEnum,
@@ -8,6 +9,9 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "next-auth/adapters";
+import { cartItems } from "./cart";
+import { shippingInfo } from "./shipping";
+import { orders } from "./orders";
 export const roleEnum = pgEnum("roles", ROLES_ARR);
 
 export const users = pgTable("user", {
@@ -22,6 +26,14 @@ export const users = pgTable("user", {
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
 });
+
+// user relations ........................................
+export const usersRelations = relations(users, ({ one, many }) => ({
+  cartItems: many(cartItems),
+  shippingInfo: one(shippingInfo),
+  orders: many(orders),
+}));
+// user relations ........................................end
 
 export const accounts = pgTable(
   "account",

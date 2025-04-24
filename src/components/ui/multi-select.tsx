@@ -28,7 +28,7 @@ interface MultiSelectorProps
 
 interface MultiSelectContextProps {
   value: string[];
-  onValueChange: (value: string) => void;
+  onValueChange: (value: any) => void;
   open: boolean;
   setOpen: (value: boolean) => void;
   inputValue: string;
@@ -67,7 +67,7 @@ const MultiSelector = ({
   const [inputValue, setInputValue] = useState("");
   const [open, setOpen] = useState<boolean>(false);
   const [activeIndex, setActiveIndex] = useState<number>(-1);
-  const inputRef = React.useRef<HTMLInputElement | null>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const [isValueSelected, setIsValueSelected] = React.useState(false);
   const [selectedValue, setSelectedValue] = React.useState("");
 
@@ -196,7 +196,7 @@ const MultiSelector = ({
         setInputValue,
         activeIndex,
         setActiveIndex,
-        // @ts-expect-error -- we know this is fine etc.
+        //@ts-ignore
         ref: inputRef,
         handleSelect,
       }}
@@ -231,9 +231,9 @@ const MultiSelectorTrigger = forwardRef<
     <div
       ref={ref}
       className={cn(
-        "flex flex-wrap gap-1 rounded-lg bg-background p-1 py-2 ring-0 ring-stone-200/50 transition-all",
+        "flex flex-wrap gap-1 rounded-lg bg-background p-1 py-2 ring-1 ring-transparent transition-all",
         {
-          "ring-1 focus-within:ring-pink-600": activeIndex === -1,
+          "ring-1 ring-offset-1 focus-within:ring-pink-500": activeIndex === -1,
         },
         className,
       )}
@@ -243,7 +243,7 @@ const MultiSelectorTrigger = forwardRef<
         <Badge
           key={item}
           className={cn(
-            "flex items-center gap-1 rounded-xl px-1 text-stone-600",
+            "flex items-center gap-1 rounded-xl px-1",
             activeIndex === index && "ring-2 ring-muted-foreground",
           )}
           variant={"secondary"}
@@ -271,7 +271,7 @@ MultiSelectorTrigger.displayName = "MultiSelectorTrigger";
 const MultiSelectorInput = forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
->(({ className, ...props }) => {
+>(({ className, ...props }, ref) => {
   const {
     setOpen,
     inputValue,
@@ -294,7 +294,7 @@ const MultiSelectorInput = forwardRef<
       onFocus={() => setOpen(true)}
       onClick={() => setActiveIndex(-1)}
       className={cn(
-        "z-50 ml-2 flex-1 bg-transparent outline-none placeholder:text-muted-foreground",
+        "ml-2 flex-1 bg-transparent outline-none placeholder:text-muted-foreground",
         className,
         activeIndex !== -1 && "caret-transparent",
       )}
@@ -326,7 +326,7 @@ const MultiSelectorList = forwardRef<
     <CommandList
       ref={ref}
       className={cn(
-        "scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground dark:scrollbar-thumb-muted scrollbar-thumb-rounded-lg absolute top-0 z-[1000] flex w-full flex-col gap-2 rounded-md border border-muted bg-background p-2 shadow-md transition-colors",
+        "scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground dark:scrollbar-thumb-muted scrollbar-thumb-rounded-lg absolute top-0 z-10 flex w-full flex-col gap-2 rounded-md border border-muted bg-background p-2 shadow-md transition-colors",
         className,
       )}
     >

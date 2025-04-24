@@ -64,6 +64,41 @@
       "when": 1744428455543,
       "tag": "0008_last_rogue",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1745314783392,
+      "tag": "0009_greedy_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1745404866990,
+      "tag": "0010_thick_vargas",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1745468558687,
+      "tag": "0011_milky_dreaming_celestial",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1745487927144,
+      "tag": "0012_fantastic_thunderbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1745489170317,
+      "tag": "0013_unknown_white_tiger",
+      "breakpoints": true
     }
   ]
 }

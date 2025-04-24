@@ -28,7 +28,7 @@ const SelectionPopover = ({
   DBexistedSizes?: AllPossibleSizesType[];
 }) => {
   // hooks
-  const { setSize, sizeColorStockImgArr, selectedSize } =
+  const { setSelectedSize, sizeColorStockImgArr, selectedSize } =
     useSizeColorStockImgStore();
   //states
   const [error, setError] = useState("");
@@ -77,18 +77,25 @@ const SelectionPopover = ({
   }
   //
   const setInitialSize = () => {
-    let s_size: AllPossibleSizesType | null = null;
-    if (!DBexistedSizes || DBexistedSizes.length === 0) return;
-    ALL_PRODUCTS_SIZES.forEach((element) => {
-      if (DBexistedSizes.includes(element)) {
-      } else {
-        if (!s_size) {
-          s_size = element;
+    if (!DBexistedSizes || DBexistedSizes.length === 0) {
+      //creating first time
+      console.log("it is come here");
+
+      setSelectedSize("XS");
+    } else {
+      // for updating
+      let s_size: AllPossibleSizesType | null = null;
+      ALL_PRODUCTS_SIZES.forEach((element) => {
+        if (DBexistedSizes.includes(element)) {
+        } else {
+          if (!s_size) {
+            s_size = element;
+          }
         }
+      });
+      if (s_size) {
+        setSelectedSize(s_size);
       }
-    });
-    if (s_size) {
-      setSize(s_size);
     }
   };
 
@@ -114,7 +121,7 @@ const SelectionPopover = ({
                 key={item}
                 onClick={() => {
                   if (DBexistedSizes?.includes(item)) return;
-                  setSize(item);
+                  setSelectedSize(item);
                 }}
                 className={cn(
                   "flex-none cursor-pointer rounded border border-stone-300 px-4 py-3 font-semibold",

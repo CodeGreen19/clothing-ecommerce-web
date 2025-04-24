@@ -10,9 +10,12 @@ import SearchDrawer from "./SearchDrawer";
 import CartsAndPaymentSheet from "../../cart&payments/components";
 import WishListsSheet from "../../wishlists/components";
 import MobileNavigationMenu from "./MobileNavigationMenu";
+import { getUserCartCount } from "../../cart&payments/server/cart.action";
+import UserInfo from "./UserInfo";
 
 const Navbar = async () => {
   const session = await auth();
+  const cartCount = await getUserCartCount();
 
   return (
     <div
@@ -46,7 +49,10 @@ const Navbar = async () => {
           )}
 
           <CartsAndPaymentSheet>
-            <li className="nav-icon">
+            <li className="nav-icon relative">
+              <span className="absolute -right-1 -top-3 block p-1">
+                {cartCount}
+              </span>
               <ShoppingCart />
             </li>
           </CartsAndPaymentSheet>
@@ -68,6 +74,8 @@ const Navbar = async () => {
           </MobileNavigationMenu>
         </ul>
       </div>
+
+      <UserInfo />
     </div>
   );
 };
